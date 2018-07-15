@@ -7,7 +7,7 @@ ENV INITSYSTEM on
 ################
 
 RUN apt-get -q update \
-		&& apt-get install -y 	git python python-dev build-essential wget ca-certificates \
+		&& apt-get install -y cmake git python python-dev build-essential wget ca-certificates \
 			libncurses5-dev automake libtool bison flex texinfo gawk curl cvs subversion gcj-jdk libexpat1-dev gperf --no-install-recommends \
 		&& apt-get clean \
 		&& rm -rf /var/lib/apt/lists/*
@@ -23,7 +23,7 @@ RUN apt-get update && \
     apt-get -y install git sbt && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN git clone https://github.com/navicore/dht22-temp-monitor-for-pi.git src && cd src && sbt javah assembly
+RUN git clone https://github.com/navicore/dht22-temp-monitor-for-pi.git dht22 && cd dht22 && sbt javah assembly
 
 RUN mkdir -p /app
 
