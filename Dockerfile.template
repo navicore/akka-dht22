@@ -35,7 +35,7 @@ MAINTAINER Ed Sweeney <ed@onextent.com>
 # wiringpi (not sure how to copy it from buildstep stage)
 RUN apt-get -q update && apt-get install -y wiringpi --no-install-recommends && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-COPY --from=buildstep /src/target/scala-2.12/*.jar /app/
+COPY --from=buildstep /akka-dht22/target/scala-2.12/*.jar /app/
 
 WORKDIR /app
 
