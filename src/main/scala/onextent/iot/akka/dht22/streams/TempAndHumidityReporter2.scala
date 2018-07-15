@@ -1,6 +1,5 @@
 package onextent.iot.akka.dht22.streams
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import akka.actor.ActorSystem
 import akka.stream._
 import akka.stream.alpakka.mqtt.scaladsl.MqttSink
@@ -14,10 +13,11 @@ import io.circe.Encoder
 import io.circe.generic.auto._
 import io.circe.syntax._
 import onextent.iot.akka.dht22.Conf._
-import onextent.iot.akka.dht22.io.{Dht22Sensor, SR04Sensor}
+import onextent.iot.akka.dht22.io.Dht22Sensor
 import onextent.iot.akka.dht22.models._
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
@@ -31,9 +31,10 @@ object TempAndHumidityReporter2 extends LazyLogging {
   def createToConsumer(consumer: Sink[MqttMessage, Future[Done]])(
       implicit s: ActorSystem,
       m: Materializer): (Sink[MqttMessage, NotUsed], Future[Done]) = {
-      MergeHub
-        .source[MqttMessage](perProducerBufferSize = 16)
-        .toMat(consumer)(Keep.both).run
+    MergeHub
+      .source[MqttMessage](perProducerBufferSize = 16)
+      .toMat(consumer)(Keep.both)
+      .run
   }
 
   def throttlingFlow[T]: Flow[T, T, NotUsed] =
@@ -46,7 +47,7 @@ object TempAndHumidityReporter2 extends LazyLogging {
 
   val connectionSettings: MqttConnectionSettings =
     MqttConnectionSettings(
-      mqttUrl,
+      mqttPublishUrl,
       mqttClientId,
       new MemoryPersistence
     ).withAuth(mqttUser, mqttPwd)
@@ -56,22 +57,8 @@ object TempAndHumidityReporter2 extends LazyLogging {
 
   def apply(): NotUsed = {
 
-    def measureDistance() =
-      (r: (Int, Command)) => (r._1, SR04Sensor())
-
     def readTemp() =
       (r: (Int, Command)) => (r._1, Dht22Sensor(r._1))
-
-    def distReadings() =
-      (t: (Int, Option[UltraSonicReading])) => {
-        t._2 match {
-          case Some(reading) =>
-            List(UltraSonicReport(Some(s"$deviceId-temp-${t._1}"), reading))
-          case _ =>
-            logger.warn(s"empty ultrasonic reading")
-            List()
-        }
-      }
 
     def tempReadings =
       (t: (Int, Option[TempReading])) => {
@@ -129,26 +116,11 @@ object TempAndHumidityReporter2 extends LazyLogging {
                    maxBackoff = 10 seconds,
                    randomFactor = 0.2) { () =>
         // read temp port 4 when button is pressed
-        Source.fromGraph(new ButtonSource(RaspiBcmPin.GPIO_02, 4))
+        Source.fromGraph(new ButtonSource(RaspiBcmPin.GPIO_02, 4)) //todo env var
       }
       .map(readTemp())
       .mapConcat(tempReadings)
       .map(mqttReading)
-      .to(toConsumer._1)
-      .run()
-
-    RestartSource
-      .withBackoff(minBackoff = 1 second,
-                   maxBackoff = 10 seconds,
-                   randomFactor = 0.2) { () =>
-        // read port 21 every n seconds
-        Source.fromGraph(new CommandSource(21)).via(throttlingFlow)
-
-      }
-      .map(measureDistance())
-      .mapConcat(distReadings())
-      .map(mqttReading)
-      .alsoTo(Sink.foreach(m => logger.debug(s"stream s3: ${new String(m.payload.toArray, "UTF8")}"))) // debug
       .to(toConsumer._1)
       .run()
 

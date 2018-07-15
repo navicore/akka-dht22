@@ -37,12 +37,18 @@ object Conf extends LazyLogging {
   implicit val materializer: ActorMaterializer = ActorMaterializer(
     ActorMaterializerSettings(actorSystem).withSupervisionStrategy(decider))
 
-  val mqttUrl: String = conf.getString("mqtt.url")
-  val mqttUser: String = conf.getString("mqtt.user")
-  val mqttPwd: String = conf.getString("mqtt.pwd")
-  val mqttTopic: String = conf.getString("mqtt.topic")
-  val mqttClientId: String = conf.getString("mqtt.clientId")
+  val host: String = conf.getString("mqtt.publish.host")
+  val proto: String = conf.getString("mqtt.publish.proto")
+  val port: Int = conf.getInt("mqtt.publish.port")
+  val mqttPublishUrl: String = s"$proto://$host:$port"
 
+  val mqttPublishTopicPrefix: String = conf.getString("mqtt.publish.topicPrefix")
+  val mqttPublishTopicSuffix: String = conf.getString("mqtt.publish.topicSuffix")
+  val mqttTopic = s"$mqttPublishTopicPrefix$mqttPublishTopicSuffix"
+
+  val mqttUser: String = conf.getString("mqtt.publish.user")
+  val mqttPwd: String = conf.getString("mqtt.publish.pwd")
+  val mqttClientId: String = conf.getString("mqtt.publish.clientId")
   val deviceId: String = conf.getString("main.deviceId")
   val intervalSeconds: FiniteDuration = Duration(conf.getInt("main.intervalSeconds"), SECONDS)
 
