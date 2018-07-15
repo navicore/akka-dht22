@@ -1,0 +1,43 @@
+FROM resin/%%RESIN_MACHINE_NAME%%-openjdk AS buildstep
+
+ENV INITSYSTEM on
+
+################
+# Install deps #
+################
+
+RUN apt-get -q update \
+		&& apt-get install -y 	git python python-dev build-essential wget ca-certificates \
+			libncurses5-dev automake libtool bison flex texinfo gawk curl cvs subversion gcj-jdk libexpat1-dev gperf --no-install-recommends \
+		&& apt-get clean \
+		&& rm -rf /var/lib/apt/lists/*
+
+###############
+# build stage #
+###############
+
+RUN echo "deb http://dl.bintray.com/sbt/debian /" | tee -a /etc/apt/sources.list.d/sbt.list && \
+    apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 642AC823
+
+RUN apt-get update && \
+    apt-get -y install git sbt && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN git clone https://github.com/navicore/dht22-temp-monitor-for-pi.git src && cd src && sbt javah assembly
+
+RUN mkdir -p /app
+
+####################
+# deployment stage #
+####################
+FROM resin/%%RESIN_MACHINE_NAME%%-openjdk
+
+MAINTAINER Ed Sweeney <ed@onextent.com>
+
+COPY --from=buildstep /src/target/scala-2.12/*.jar /app/
+
+WORKDIR /app
+
+#CMD ["java","-Xms125m","-Xmx125m","-jar","/app/Dht22TempMonitorForPi.jar"]
+CMD ["ls","-a", "."]
+
