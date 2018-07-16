@@ -29,7 +29,7 @@ libraryDependencies ++= Seq(
 
 )
 
-mainClass in assembly := Some("onextent.iot.pijvmpoc2.Main")
+mainClass in assembly := Some("onextent.iot.akka.dht22.Main")
 assemblyJarName in assembly := "AkkaDht22.jar"
 
 assemblyMergeStrategy in assembly := {
