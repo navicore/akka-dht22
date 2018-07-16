@@ -48,7 +48,7 @@ object Conf extends LazyLogging {
 
   val mqttUser: String = conf.getString("mqtt.publish.user")
   val mqttPwd: String = conf.getString("mqtt.publish.pwd")
-  val mqttClientId: String = conf.getString("mqtt.publish.clientId")
+  val mqttClientId: String = conf.getString("main.appName") + "-" + conf.getString("mqtt.publish.clientId")
   val deviceId: String = conf.getString("main.deviceId")
   val intervalSeconds: FiniteDuration = Duration(conf.getInt("main.intervalSeconds"), SECONDS)
 
